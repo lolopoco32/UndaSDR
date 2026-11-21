@@ -528,4 +528,4 @@ When reporting an issue, please include:
 
 ## License
 
-No license has been specified yet. Please add a `LICENSE` file before distributing this project under an open-source license.
+This project is licensed under the GNU General Public License v3.0 (GPLv3). Anyone is free to modify and redistribute this software, provided that any derivative works are also open-sourced under the same license terms.
