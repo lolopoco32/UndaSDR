@@ -6,8 +6,7 @@ UndaSDR receives and demodulates the FM broadcast band, plays audio through ALSA
 
 The application is designed for Linux and supports RTL-SDR devices based on Realtek DVB-T chipsets, including compatible Astrometa dongles.
 
-<img width="1210" height="885" alt="Screenshot_20261121_114506" src="https://github.com/user-attachments/assets/f2dae925-6b30-4a1f-9c15-413bbf8d2559" />
-
+<img width="1210" height="920" alt="Screenshot_20261121_123839" src="https://github.com/user-attachments/assets/667eac5e-e63b-45a8-9445-80a6e1c535ce" />
 
 ## Features
 
