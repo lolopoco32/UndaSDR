@@ -1411,6 +1411,7 @@ I18N = {
     "ro": {
         "tuning": "Acordare & Control",
         "audio_sdr": "Audio & SDR",
+        "messages": "Mesaje & Jurnal",
         "warning": "",
         "freq": "Frecvență:",
         "prev": "Precedent",
@@ -1529,6 +1530,7 @@ I18N = {
     "en": {
         "tuning": "Tuning & Control",
         "audio_sdr": "Audio & SDR",
+        "messages": "Messages & Log",
         "warning": "",
         "freq": "Frequency:",
         "prev": "Previous",
@@ -1649,6 +1651,7 @@ I18N = {
     "it": {
         "tuning": "Sintonia & Controllo",
         "audio_sdr": "Audio & SDR",
+        "messages": "Messaggi & Log",
         "warning": "",
         "freq": "Frequenza:",
         "prev": "Precedente",
@@ -1752,8 +1755,7 @@ I18N = {
             "Soglia di rilevamento sul rumore (dB):\n"
             "• Consigliato: 10–12 dB per un buon\n"
             "  equilibrio tra precisione e velocità.\n"
-            "• Più bassa (5–8 dB): rileva anche\n"
-            "  stazioni deboli, ma aumenta i falsi\n"
+            "• Più bassa (5–8 dB): rileva anche\n  stazioni deboli, ma aumenta i falsi\n"
             "  positivi e la pulizia manuale.\n"
             "• Più alta (15+ dB): più rapida e\n"
             "  precisa su segnali forti, ma può\n"
@@ -1889,6 +1891,7 @@ class App:
         self._last_cols = 0
         self._toolbar_pad = 2           # spațiu deasupra rândului Caută/…/Golește (ajustat la aliniere)
         self._align_pending = False
+        self._nudge_pending = False
         self.rec_dir = default_rec_dir()
         self.ui_q = queue.Queue()
         self.scanning = False
@@ -1896,6 +1899,7 @@ class App:
         self._status_key = None
         self._status_args = ()
         self._status_raw = ""
+        self._alert_text = ""
         self.cfg = self._load_cfg()
         self._build_ui()
         self._apply_cfg()
@@ -2001,23 +2005,39 @@ class App:
                 return tpl
         return tpl
 
+    def _compose_message_box(self):
+        parts = []
+        if self._alert_text:
+            parts.append(self._alert_text)
+        cur_status = self.status.get().strip()
+        if cur_status and cur_status not in parts:
+            parts.append(cur_status)
+        self.msg_box_text.set("\n".join(parts))
+
+    def _set_alert_text(self, text):
+        self._alert_text = (text or "").strip()
+        self._compose_message_box()
+
     def _set_status_key(self, key, *args):
         self._status_key = key
         self._status_args = args
         self._status_raw = ""
         self.status.set(self._tr(key, *args))
+        self._compose_message_box()
 
     def _set_status_text(self, text):
         self._status_key = None
         self._status_args = ()
         self._status_raw = text
         self.status.set(text)
+        self._compose_message_box()
 
     def _refresh_status_text(self):
         if self._status_key:
             self.status.set(self._tr(self._status_key, *self._status_args))
         elif self._status_raw:
             self.status.set(self._status_raw)
+        self._compose_message_box()
 
     def _build_ui(self):
         r = self.root
@@ -2032,6 +2052,7 @@ class App:
         right = ttk.Frame(shell, width=RIGHT_PANEL_W)
         right.pack(side="right", fill="y", padx=(10, 0))
         right.pack_propagate(False)
+        right.bind("<Configure>", self._schedule_nudge_layout)
 
         # Zona principală din stânga
         m = ttk.Frame(shell)
@@ -2120,19 +2141,31 @@ class App:
             row=0, column=1, sticky="ew", padx=(3, 0)
         )
 
-        # Frecvență -> [căsuță la centrul imaginar] -> [MHz] -> [Mergi]
+        # Frecvență -> [- + poziționate cu offset față de mijlocul imaginar al panoului și al spațiului dintre butoane] -> [căsuță] [MHz] [Mergi]
         go_row = ttk.Frame(tune_box)
         go_row.pack(fill="x", pady=(0, 6))
-        label(go_row, "freq").pack(side="left")
-        b_down = ttk.Button(go_row, text=ICONS["nudge_down"], width=3, command=lambda: self.nudge(-0.1))
-        b_down.pack(side="left", padx=(8, 0))
+        self._go_row = go_row
+        go_row.bind("<Configure>", self._schedule_nudge_layout)
+        self._freq_lbl = label(go_row, "freq")
+        self._freq_lbl.pack(side="left")
+
+        nudge_slot = tk.Frame(go_row, height=32)
+        nudge_slot.pack(side="left", fill="x", expand=True, padx=(4, 4))
+        nudge_slot.pack_propagate(False)
+        self._nudge_slot = nudge_slot
+
+        b_down = ttk.Button(nudge_slot, text=ICONS["nudge_down"], width=2, command=lambda: self.nudge(-0.1))
         add_tip(b_down, "tip_nudge_down")
-        b_up = ttk.Button(go_row, text=ICONS["nudge_up"], width=3, command=lambda: self.nudge(0.1))
-        b_up.pack(side="left", padx=(3, 0))
+        b_up = ttk.Button(nudge_slot, text=ICONS["nudge_up"], width=2, command=lambda: self.nudge(0.1))
         add_tip(b_up, "tip_nudge_up")
+        self._btn_nudge_down = b_down
+        self._btn_nudge_up = b_up
+
         btn_go = button(go_row, "go", self.go_entry, icon_key="go", tip_key="tip_go", width=7)
         btn_go.pack(side="right")
-        ttk.Label(go_row, text="MHz").pack(side="right", padx=(0, 4))
+        self._btn_go = btn_go
+        self._mhz_lbl = ttk.Label(go_row, text="MHz")
+        self._mhz_lbl.pack(side="right", padx=(0, 4))
         self.ent = ttk.Entry(go_row, width=6, justify="center")
         self.ent.pack(side="right", padx=(0, 4))
         self.ent.bind("<Return>", lambda e: self.go_entry())
@@ -2191,12 +2224,12 @@ class App:
 
         ttk.Separator(right, orient="horizontal").pack(fill="x", pady=(4, 8))
 
-        # --- Panou dreapta: 4) Zonă frecvență / RDS / nume / mesaj ---
+        # --- Panou dreapta: 4) Zonă frecvență / RDS / nume + casetă separată mesaje ---
         status_box = ttk.Frame(right)
         status_box.pack(fill="both", expand=True)
 
         status_hdr = ttk.Frame(status_box)
-        status_hdr.pack(fill="x", pady=(0, 4))
+        status_hdr.pack(fill="x", pady=(0, 2))
         self.rds_var = tk.IntVar(value=0)
         self.rds_btn = ttk.Checkbutton(
             status_hdr,
@@ -2208,35 +2241,43 @@ class App:
         self.i18n_widgets.append((self.rds_btn, "rds" if HAS_RDS_DEPS else "rds_na", None))
         add_tip(self.rds_btn, "tip_rds" if HAS_RDS_DEPS else "tip_rds_na")
 
-        self.lbl_freq = ttk.Label(status_box, text="--.- MHz", font=("TkDefaultFont", 20, "bold"),
+        self.lbl_freq = ttk.Label(status_box, text="--.- MHz", font=("TkDefaultFont", 18, "bold"),
                                   anchor="center", justify="center")
         self.lbl_freq.pack(fill="x")
 
-        self.lbl_ps = ttk.Label(status_box, text="", font=("TkDefaultFont", 13, "bold"),
+        self.lbl_ps = ttk.Label(status_box, text="", font=("TkDefaultFont", 12, "bold"),
                                 wraplength=RIGHT_PANEL_W - 16, anchor="center", justify="center")
-        self.lbl_ps.pack(fill="x", pady=(2, 0))
+        self.lbl_ps.pack(fill="x", pady=(1, 0))
 
         self.lbl_rt = ttk.Label(status_box, text="", font=("TkDefaultFont", 9, "italic"),
                                 wraplength=RIGHT_PANEL_W - 16, anchor="center", justify="center")
-        self.lbl_rt.pack(fill="x", pady=(2, 2))
+        self.lbl_rt.pack(fill="x", pady=(1, 1))
 
         self.lbl_info = ttk.Label(status_box, text="", font=("TkDefaultFont", 8),
                                   wraplength=RIGHT_PANEL_W - 16, anchor="center", justify="center")
-        self.lbl_info.pack(fill="x", pady=(0, 6))
+        self.lbl_info.pack(fill="x", pady=(0, 4))
 
-        ttk.Separator(status_box, orient="horizontal").pack(fill="x", pady=(0, 6))
+        # Casetă separată pentru mesaje de stare, erori și avertismente (folosește spațiul rezervat)
+        self.msg_frame = ttk.LabelFrame(status_box, text=self._tr("messages"), padding=(6, 4))
+        self.msg_frame.pack(fill="both", expand=True, pady=(2, 0))
+        self.i18n_widgets.append((self.msg_frame, "messages", None))
 
         self.status = tk.StringVar(value="")
-        ttk.Label(status_box, textvariable=self.status, wraplength=RIGHT_PANEL_W - 16,
-                  anchor="center", justify="center").pack(fill="x")
+        self.msg_box_text = tk.StringVar(value="")
+        self.lbl_msg_box = ttk.Label(
+            self.msg_frame,
+            textvariable=self.msg_box_text,
+            wraplength=RIGHT_PANEL_W - 28,
+            anchor="nw",
+            justify="left",
+            font=("TkDefaultFont", 8),
+        )
+        self.lbl_msg_box.pack(fill="both", expand=True)
 
-        # --- Conținut principal sus (stânga): doar bara scalabilă + rândul caută/anulează/prag/listă ---
-        self.lbl_warning = ttk.Label(m, text="", font=("TkDefaultFont", 10, "bold"))
-        self.lbl_warning.pack(fill="x", pady=(0, 4))
-
+        # --- Conținut principal sus (stânga): grafic frecvențe ridicat + rând aliniat + listă ---
         scale_row = ttk.Frame(m)
-        scale_row.pack(fill="x", pady=(0, 4))
-        self.tune_canvas = tk.Canvas(scale_row, height=76, highlightthickness=0)
+        scale_row.pack(fill="x", pady=(0, 2))
+        self.tune_canvas = tk.Canvas(scale_row, height=60, highlightthickness=0)
         self.tune_canvas.pack(fill="x", expand=True)
         self.tune_canvas.bind("<Configure>", self._draw_frequency_scale)
         self.tune_canvas.bind("<Button-1>", self._scale_click)
@@ -2287,6 +2328,47 @@ class App:
         self.stations_canvas.bind_all("<Button-5>", self._on_mousewheel, add="+")
 
         self.prog = ttk.Progressbar(m, maximum=1.0)
+        self._schedule_nudge_layout()
+        self._schedule_row_align()
+
+    def _schedule_nudge_layout(self, _event=None):
+        if not self._nudge_pending:
+            self._nudge_pending = True
+            self.root.after_idle(self._layout_nudge_buttons)
+
+    def _layout_nudge_buttons(self):
+        """Poziționează butoanele - și + cu offset raportat la mijlocul imaginar al panoului
+        din dreapta și al spațiului dintre butoane, fără tăiere pe verticală."""
+        self._nudge_pending = False
+        self.root.update_idletasks()
+        slot = self._nudge_slot
+        btn_w = max(22, self._btn_nudge_down.winfo_reqwidth())
+        btn_h = max(24, self._btn_nudge_down.winfo_reqheight())
+
+        min_slot_h = btn_h + 6
+        if int(slot.cget("height")) < min_slot_h:
+            slot.configure(height=min_slot_h)
+
+        slot_w = slot.winfo_width()
+        slot_h = max(slot.winfo_height(), min_slot_h)
+        if slot_w <= 4:
+            slot_w = max(48, RIGHT_PANEL_W // 4)
+
+        panel_w = max(self.right_frame.winfo_width(), RIGHT_PANEL_W)
+        panel_mid_x = panel_w / 2.0
+        slot_root_x = slot.winfo_rootx() - self.right_frame.winfo_rootx()
+        local_panel_mid = max(6.0, min(slot_w - 6.0, panel_mid_x - slot_root_x))
+
+        gap = max(2, int(round(slot_w * 0.05)))
+        center_offset = (btn_w + gap) * 0.35
+        mid_x = local_panel_mid + center_offset
+        y = max(1, (slot_h - btn_h) // 2)
+
+        x_minus = max(0, min(slot_w - btn_w * 2 - gap, int(round(mid_x - gap / 2.0 - btn_w))))
+        x_plus = min(slot_w - btn_w, x_minus + btn_w + gap)
+
+        self._btn_nudge_down.place(x=x_minus, y=y, width=btn_w, height=btn_h)
+        self._btn_nudge_up.place(x=x_plus, y=y, width=btn_w, height=btn_h)
 
     def _schedule_row_align(self, _event=None):
         if not self._align_pending:
@@ -2302,6 +2384,7 @@ class App:
         if new != self._toolbar_pad:
             self._toolbar_pad = new
             self._toolbar_row.pack_configure(pady=(new, 6))
+            self.root.after_idle(self._align_toolbar_row)
 
     def _on_stations_inner_configure(self, _event=None):
         self.stations_canvas.configure(scrollregion=self.stations_canvas.bbox("all"))
@@ -2445,9 +2528,11 @@ class App:
             tt.set_text(self._tr(tip_key))
         self._sync_power_button()
         self._refresh_rec_ui()
-        self._refresh_status_text()
         if MISSING_DEPS:
-            self.lbl_warning.config(text=self._tr("missing_deps_warn", " | ".join(MISSING_DEPS)))
+            self._set_alert_text(self._tr("missing_deps_warn", " | ".join(MISSING_DEPS)))
+        self._refresh_status_text()
+        self._schedule_nudge_layout()
+        self._schedule_row_align()
         if save:
             self._save_cfg()
 
@@ -2457,11 +2542,18 @@ class App:
         self._apply_translations(save=True)
 
     def _draw_frequency_scale(self, _event=None):
+        """Grafic de frecvențe scalabil, ridicat mai sus împreună cu cifrele și indicator scurt."""
         c = self.tune_canvas
         c.delete("all")
         width = max(c.winfo_width(), 2)
-        left, right = 12, width - 12
-        y = 34
+        h = max(c.winfo_height(), 46)
+        pad_x = max(10, min(20, int(round(width * 0.015))))
+        left, right = pad_x, max(pad_x + 2, width - pad_x)
+
+        top_lbl_y = max(1, int(round(h * 0.02)))
+        y = max(18, int(round(h * 0.40)))
+        num_y = min(h - 2, y + max(11, int(round(h * 0.22))))
+
         c.create_line(left, y, right, y)
         px_per_mhz = (right - left) / (BAND_END - BAND_START)
         step = 0.1 if px_per_mhz >= 8 else (0.2 if px_per_mhz >= 4 else 0.5)
@@ -2471,18 +2563,22 @@ class App:
             x = left + (f - BAND_START) * px_per_mhz
             major = abs(f - round(f)) < 0.001
             mid = not major and abs(f * 2 - round(f * 2)) < 0.001
-            tick = 17 if major else (11 if mid else 5)
+            tick = 13 if major else (8 if mid else 4)
             c.create_line(x, y - tick / 2, x, y + tick / 2)
             if major:
-                c.create_text(x, y + 22, text=f"{f:.0f}", anchor="n")
+                c.create_text(x, num_y, text=f"{f:.0f}", anchor="n", font=("TkDefaultFont", 8))
+
         f = max(BAND_START, min(BAND_END, self.eng.freq))
         x = left + (f - BAND_START) * px_per_mhz
-        c.create_line(x, 3, x, y + 8, width=2)
-        c.create_text(x, 2, text=f"{f:.1f} MHz", anchor="s")
+        ind_top = max(top_lbl_y + 9, y - 9)
+        ind_bot = min(num_y - 2, y + 5)
+        c.create_line(x, ind_top, x, ind_bot, width=2)
+        c.create_text(x, top_lbl_y, text=f"{f:.1f} MHz", anchor="n", font=("TkDefaultFont", 8, "bold"))
 
     def _scale_click(self, event):
         width = self.tune_canvas.winfo_width()
-        left, right = 12, width - 12
+        pad_x = max(10, min(20, int(round(width * 0.015))))
+        left, right = pad_x, width - pad_x
         if right <= left:
             return
         f = BAND_START + (event.x - left) / (right - left) * (BAND_END - BAND_START)
@@ -2560,11 +2656,12 @@ class App:
 
     def _check_system_status(self):
         if MISSING_DEPS:
-            self.lbl_warning.config(text=self._tr("missing_deps_warn", " | ".join(MISSING_DEPS)))
+            self._set_alert_text(self._tr("missing_deps_warn", " | ".join(MISSING_DEPS)))
             self._set_status_key("missing_deps")
             self.btn_power.config(state="disabled")
             self.btn_scan.config(state="disabled")
         else:
+            self._set_alert_text("")
             self.eng.guard.recover()
             self.start_radio()
 
@@ -2575,7 +2672,7 @@ class App:
             self.eng.open(self.gain_var.get(), force=force)
             self._sync_power_button()
             self._set_status_key("listening")
-            self.lbl_warning.config(text="")
+            self._set_alert_text("")
         except DeviceBusy as e:
             self._sync_power_button()
             who = ", ".join(e.procs)
@@ -2588,7 +2685,7 @@ class App:
                 self._set_status_key("tv_busy_status", who)
         except Exception as e:
             self._sync_power_button()
-            self.lbl_warning.config(text=self._tr("sdr_unavail_warn"))
+            self._set_alert_text(self._tr("sdr_unavail_warn"))
             self._set_status_key("sdr_unavail_status", str(e)[:300])
 
     def toggle_power(self):
