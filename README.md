@@ -6,21 +6,8 @@ UndaSDR receives and demodulates the FM broadcast band, plays audio through ALSA
 
 The application is designed for Linux and supports RTL-SDR devices based on Realtek DVB-T chipsets, including compatible Astrometa dongles.
 
-## Changelog
-
-### Added
-* **Aviation & Ham Radio Mode**: Switch from standard FM radio to listen across aviation AM frequencies (`118–137 MHz`) and ham radio bands (`144–146 MHz` VHF and `430–440 MHz` UHF).
-* **Interactive Band Charts & HOLD**: View live signal markers on resizable band charts, click directly on a chart to tune, use **HOLD** to keep markers from fading while listening, jump between detected markers, or clear them anytime.
-* **Continuous Band Scanning**: Scan aviation or ham bands continuously with a toggle button and stop easily with another click or by picking a frequency on the chart.
-* **Squelch Control**: Adjust the squelch threshold in aviation and ham mode to quiet background static when no signal is present.
-* **Packet & Data Message Cards**: Decode readable text and packet messages on tuned frequencies and view them as clean cards in a dedicated panel with a clear button.
-* **Fine Tuning Steps**: Step frequencies using band-appropriate increments (`25 kHz` for aviation, `12.5 kHz` for ham radio, and `0.1 MHz` for FM).
-
-### Changed
-* **Right Sidebar Layout**: Reorganized the right panel when switching to Aviation / Ham mode so tuning controls, band selection, squelch, packet decoding, and marker **HOLD** status are right at hand.
-* **Frequency Input & Tuning**: Expanded frequency entry and step controls to support finer decimal frequencies and direct band switching.
-* **Saved Settings**: Remember your selected ham band, squelch level, and packet decoding preference alongside your existing configuration.
-* **Translations**: Updated Romanian, English, and Italian interface labels and tooltips for all new modes, controls, and status messages.
+<img width="1439" height="872" alt="Screenshot_20261122_201812" src="https://github.com/user-attachments/assets/4b1eff6a-9d79-4197-b341-4279264cfeca" />
+<img width="1439" height="872" alt="Screenshot_20261122_202112" src="https://github.com/user-attachments/assets/aba32a3d-2e61-4b45-8783-24014741a249" />
 
 ## Features
 
