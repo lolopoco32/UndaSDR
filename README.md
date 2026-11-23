@@ -1,7 +1,5 @@
 # UndaSDR RTL-SDR
 
-A lightweight FM radio application with a graphical interface for RTL-SDR USB dongles, built with Python and Tkinter.
-
 UndaSDR receives and demodulates the FM broadcast band, plays audio through ALSA/PipeWire, scans for stations, stores favorite stations, decodes RDS information, and records audio. It also includes an Aviation / Ham Radio mode with interactive band charts, continuous scanning, squelch control, and packet/data message decoding.
 
 The application is designed for Linux and supports RTL-SDR devices based on Realtek DVB-T chipsets, including compatible Astrometa dongles.
