@@ -4,29 +4,29 @@ UndaSDR receives and demodulates the FM broadcast band, plays audio through ALSA
 
 The application is designed for Linux and supports RTL-SDR devices based on Realtek DVB-T chipsets, including compatible Astrometa dongles.
 
-<img width="1438" height="914" alt="Screenshot_20261124_205656" src="https://github.com/user-attachments/assets/8f2151d7-6e74-4021-a704-401c4cc7d9f4" />
-<img width="1438" height="914" alt="Screenshot_20261124_205528" src="https://github.com/user-attachments/assets/e4441799-fa70-4da8-96b4-52759cb8a9f2" />
-
 ## Features
 
 - **FM radio reception** across the 87.5–108.0 MHz broadcast band.
-- **Aviation & Ham Radio mode** covering aviation AM (`118–137 MHz`) and ham radio bands (`144–146 MHz` VHF and `430–440 MHz` UHF) with AM and NFM demodulation.
+- **Amateur / SDR mode** covering aviation AM (118–137 MHz) and ham radio bands (144–146 MHz VHF and 430–440 MHz UHF) with AM and NFM demodulation, expanded in the new script with MW/AM broadcast, shortwave, CB, marine VHF, PMR446, SRD 868, additional HF/VHF/UHF amateur bands, SSB (USB/LSB) support, per-band tuning steps, and recommended filter widths.
 - **Interactive band activity charts** with persistent markers, marker **HOLD**, marker navigation, and manual clearing.
 - **Continuous band scanning** for aviation and ham frequencies.
 - **Squelch control** to filter out background noise when listening to aviation or ham signals.
-- **Packet and data message decoding** displayed in a dedicated message card panel.
+- **Packet and data message decoding** displayed in a dedicated message card panel, expanded with DTMF tone sequence detection and background channel monitoring around the tuned frequency.
 - **Automatic station scanning** with an adjustable signal-detection threshold.
-- **Favorite station list** with custom station names.
+- **Favorite station list** with custom station names for Radio FM
 - **Quick tuning** using the frequency scale, frequency entry, tuning buttons, or saved stations.
 - **RDS decoding** for station name (PS), radio text (RT), program identification (PI), and program type (PTY).
-- **Audio controls**, including volume, mute, and tuner gain selection.
-- **Audio recording** to WAV, FLAC, MP3, or AAC/M4A.
+- **Audio controls**, including volume, mute, and tuner gain selection, plus optional locking for filter width or audio output.
+- **Audio recording** to WAV, FLAC, MP3, or AAC/M4A via ffmpeg.
 - **ALSA/PipeWire playback** through `aplay`.
 - **Automatic DVB driver management**: the application temporarily detaches the kernel DVB driver while using the dongle as an SDR and attempts to reattach it when the radio stops.
 - **TV tuner recovery** after radio use, so compatible TV applications can use the dongle again.
-- **Automatic configuration saving**, including stations, frequency, volume, gain, language, recording preferences, and window geometry.
+- **Automatic configuration saving**, including stations, frequency, volume, gain, language, recording preferences, and window geometry, plus per-band settings.
 - **Multilingual interface**: Romanian, English, and Italian.
 - **Single-file application**: the program is currently distributed as one Python file.
+- **Switchable lower view with spectrum and waterfall** lets you toggle the lower area between decoded message cards and a live RF spectrum + waterfall display with zoom (including mouse wheel), color sensitivity, FPS control, peak hold, click-to-tune (with optional snapping to nearby peaks), and direct filter bandwidth dragging on the orange filter box.
+- **Crystal frequency calibration (PPM)** adds a dedicated assistant to measure dongle frequency error using GSM bands or a known carrier and apply PPM correction automatically.
+- **Hardware range and HF notes** flags unsupported tuner frequency ranges and displays HF direct sampling / upconverter notes.
 
 ## Requirements
 
